@@ -212,6 +212,13 @@ namespace yaarc {
 			return std::string_view(reinterpret_cast<const char*>(m_string.data()), m_string.size());
 		}
 
+		const std::vector<uint8_t> AsBytes() const {
+			if (m_type != ValueType::String && m_type != ValueType::Error) {
+				throw std::runtime_error(fmt::format("Cannot convert type {} to string", m_type));
+			}
+			return m_string;
+		}
+
 		[[nodiscard]] std::string AsStringCopy() const {
 			if (m_type != ValueType::String && m_type != ValueType::Error) {
 				throw std::runtime_error(fmt::format("Cannot convert type {} to string", m_type));
