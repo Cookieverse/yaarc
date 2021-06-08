@@ -87,12 +87,12 @@ namespace yaarc::impl {
 				m_reconnectTimer.cancel();
 
 				for (auto& cmd : m_sentCommands) {
-					cmd.Callback(asio::error::operation_aborted, Value());
+					cmd.Invoke(asio::error::operation_aborted, Value());
 				}
 				m_sentCommands.clear();
 
 				for (auto& cmd : m_pendingCommands) {
-					cmd.Callback(asio::error::operation_aborted, Value());
+					cmd.Invoke(asio::error::operation_aborted, Value());
 				}
 				m_pendingCommands.clear();
 				// if we have a socket, dispatch handler to it
@@ -276,7 +276,8 @@ namespace yaarc::impl {
 			if (m_sentCommands.empty()) {
 				throw std::runtime_error("Called read handler with empty m_sentCommands");
 			}
-			m_sentCommands.front().Callback(std::error_code(), std::move(value));
+			m_sentCommands.front().Invoke(std::error_code(), value);
+			m_sentCommands.pop_front();
 		}
 
 		void OnDisconnected(std::error_code ec) {
@@ -288,7 +289,7 @@ namespace yaarc::impl {
 				if (cmd.FailCount < m_config.CommandRetries) {
 					m_pendingCommands.emplace_front(std::move(cmd));
 				} else {
-					cmd.Callback(ec, Value());
+					cmd.Invoke(ec, Value());
 				}
 			}
 			m_sentCommands.clear();

@@ -23,6 +23,12 @@ namespace yaarc::impl {
 			Callback = std::move(other.Callback);
 			FailCount = other.FailCount;
 		}
+
+		void Invoke(std::error_code ec, Value result) {
+			if (Callback) {
+				Callback(std::move(ec), std::move(result));
+			}
+		}
 	};
 }
 #endif //YAARC_COMMAND_HPP

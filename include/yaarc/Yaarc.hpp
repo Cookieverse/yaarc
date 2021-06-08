@@ -37,8 +37,17 @@ namespace yaarc {
 		/// \param callback
 		/// \param expires
 		/// \param options
-		void Set(std::string_view key, Value value, Callback callback, std::chrono::milliseconds expires = std::chrono::milliseconds (0), SetOption options = SetOption.Always) {
+		void Set(std::string_view key, Value value, Callback callback, std::chrono::milliseconds expires = std::chrono::milliseconds (0), SetOption options = SetOption::Always) {
 			m_impl->Cmd({"SET", key, std::move(value)}, std::move(callback));
+		}
+
+		/// Sets a key to the specified value
+		/// \param key
+		/// \param callback
+		/// \param expires
+		/// \param options
+		void Set(std::string_view key, Value value, std::chrono::milliseconds expires = std::chrono::milliseconds (0), SetOption options = SetOption::Always) {
+			m_impl->Cmd({"SET", key, std::move(value)}, {});
 		}
 
 		void Cmd(const Value& value, Callback callback) {
