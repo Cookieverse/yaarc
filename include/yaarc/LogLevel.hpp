@@ -8,7 +8,7 @@ namespace  yaarc {
 		Error
 	};
 
-	const char* LogLevelToString(LogLevel level) {
+	inline const char* LogLevelToString(LogLevel level) {
 		switch (level){
 			case LogLevel::Debug:
 				return "debug";

@@ -289,7 +289,7 @@ namespace yaarc {
 		}
 
 		template<typename T>
-		T As() const;
+		inline T As() const;
 
 		[[nodiscard]]
 		/// Errors are pretty much string types under the hood, so there can't be a constructor overload
@@ -301,22 +301,22 @@ namespace yaarc {
 	};
 
 	template<>
-	std::string_view Value::As<std::string_view>() const {
+	inline std::string_view Value::As<std::string_view>() const {
 		return AsString();
 	};
 
 	template<>
-	std::string Value::As<std::string>() const {
+	inline std::string Value::As<std::string>() const {
 		return AsStringCopy();
 	};
 
 	template<>
-	int64_t Value::As<int64_t>() const {
+	inline int64_t Value::As<int64_t>() const {
 		return AsInteger();
 	};
 
 	template<>
-	std::vector<Value> Value::As<std::vector<Value>>() const {
+	inline std::vector<Value> Value::As<std::vector<Value>>() const {
 		return AsArray();
 	};
 }
