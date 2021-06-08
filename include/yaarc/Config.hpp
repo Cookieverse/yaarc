@@ -24,7 +24,7 @@ namespace yaarc {
 		std::chrono::milliseconds ReconnectInterval = std::chrono::milliseconds(500);
 		/// If command execution fails due to connection reasons (not redis errors, includes failed re-connects)
 		/// The command will be retries CommandRetries times
-		size_t CommandRetries;
+		size_t CommandRetries = 0;
 		/// While sending if there's multiple commands in the queue they will be copied into a buffer and sent together
 		/// This increases throughput
 		/// This value is a soft limit, if the buffer exceeds the specified size, it will be sent
