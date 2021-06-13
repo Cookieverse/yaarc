@@ -18,13 +18,13 @@ namespace yaarc {
 
 		explicit Yaarc(asio::io_context& io, Config config) : m_impl(
 				std::make_shared<impl::Client>(io, std::move(config))) {
-			SetErrorLogger([](LogLevel level, std::string msg) {
+			SetLogger([](LogLevel level, std::string msg) {
 				std::cout << "[YAARC][" << LogLevelToString(level) << "] " << msg << std::endl;
 			});
 			m_impl->Connect();
 		}
 
-		void SetErrorLogger(std::function<void(LogLevel, std::string)> handler) {
+		void SetLogger(std::function<void(LogLevel, std::string)> handler) {
 			m_impl->SetLogger(std::move(handler));
 		}
 
