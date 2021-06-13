@@ -95,7 +95,7 @@ namespace yaarc {
 		}
 
 		// copy
-		Value(const Value& other) {
+		Value(const Value& other) : m_type(ValueType::Null) {
 			*this = other;
 		}
 
