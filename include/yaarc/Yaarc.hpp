@@ -24,6 +24,11 @@ namespace yaarc {
 			m_impl->Connect();
 		}
 
+		template <typename Callback>
+		void Shutdown(Callback handler) {
+			m_impl->Stop(handler);
+		}
+
 		void SetLogger(std::function<void(LogLevel, std::string)> handler) {
 			m_impl->SetLogger(std::move(handler));
 		}
