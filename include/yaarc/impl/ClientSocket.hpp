@@ -26,7 +26,7 @@ namespace yaarc::impl {
 
 		ClientSocket(Executor io, std::function<void(Value)> read,
 							  std::function<void(YAARC_ERROR_CODE)> disconnect) :
-				m_socket(io),
+				m_socket(YAARC_ASIO::make_strand(io)),
 				m_isWriting(false),
 				m_readHandler(std::move(read)),
 				m_disconnectHandler(std::move(disconnect)) {
