@@ -1,28 +1,27 @@
 #ifndef YAARC_IMPL_CLIENT_HPP
 #define YAARC_IMPL_CLIENT_HPP
 
+#include "IncludeAsio.hpp"
 #include "../Config.hpp"
 #include "../Value.hpp"
 #include "../LogLevel.hpp"
 #include "../ValueParser.hpp"
 #include "Command.hpp"
 #include "ClientSocket.hpp"
-#include <asio.hpp>
 #include <deque>
 #include <functional>
 #include <memory>
 #include <utility>
 
-
 namespace yaarc::impl {
 	class Client : public std::enable_shared_from_this<Client> {
 		yaarc::Config m_config;
-		asio::ip::tcp::resolver m_resolver;
+		YAARC_ASIO::ip::tcp::resolver m_resolver;
 
 		std::deque<Command> m_pendingCommands;
 		std::deque<Command> m_sentCommands;
 		std::function<void(LogLevel, std::string)> m_logger;
-		asio::steady_timer m_reconnectTimer;
+		YAARC_ASIO::steady_timer m_reconnectTimer;
 		bool m_isConnected;
 		std::vector<uint8_t> m_authBuffer;
 		std::shared_ptr<ClientSocket<decltype(m_resolver.get_executor())>> m_socket;
@@ -30,9 +29,9 @@ namespace yaarc::impl {
 	public:
 		Client() = delete;
 
-		explicit Client(asio::io_context& io, Config config) :
+		explicit Client(YAARC_ASIO::io_context& io, Config config) :
 				m_config(std::move(config)),
-				m_resolver(asio::make_strand(io)),
+				m_resolver(YAARC_ASIO::make_strand(io)),
 				m_reconnectTimer(m_resolver.get_executor()),
 				m_isConnected(false),
 				m_isWriting(false) {
@@ -63,7 +62,7 @@ namespace yaarc::impl {
 			}
 			std::vector<uint8_t> encodedCommand;
 			EncodeRESPBulkString(command, encodedCommand);
-			asio::dispatch(m_resolver.get_executor(),
+			YAARC_ASIO::dispatch(m_resolver.get_executor(),
 						   [this, self{Ptr()}, encodedCommand{std::move(encodedCommand)}, callback{
 								   std::move(callback)}]() {
 							   m_pendingCommands.emplace_back(
@@ -81,18 +80,18 @@ namespace yaarc::impl {
 		/// Stops the client, all pending commands are cancelled
 		template<class Callback>
 		void Stop(Callback handler) {
-			asio::dispatch(m_resolver.get_executor(), [this, handler, self{Ptr()}]() {
+			YAARC_ASIO::dispatch(m_resolver.get_executor(), [this, handler, self{Ptr()}]() {
 
 				m_resolver.cancel();
 				m_reconnectTimer.cancel();
 
 				for (auto& cmd : m_sentCommands) {
-					cmd.Invoke(asio::error::operation_aborted, Value());
+					cmd.Invoke(YAARC_ERROR_CODE(YAARC_ASIO::error::operation_aborted), Value());
 				}
 				m_sentCommands.clear();
 
 				for (auto& cmd : m_pendingCommands) {
-					cmd.Invoke(asio::error::operation_aborted, Value());
+					cmd.Invoke(YAARC_ERROR_CODE(YAARC_ASIO::error::operation_aborted), Value());
 				}
 				m_pendingCommands.clear();
 				// if we have a socket, dispatch handler to it
@@ -100,7 +99,7 @@ namespace yaarc::impl {
 					m_socket->Stop(handler);
 					m_socket.reset();
 				} else {
-					handler(asio::error_code());
+					handler(YAARC_ERROR_CODE());
 				}
 			});
 		}
@@ -127,9 +126,9 @@ namespace yaarc::impl {
 
 		void Resolve() {
 			m_resolver.async_resolve(m_config.Host, std::to_string(m_config.Port), [this, self{Ptr()}](const std::error_code& ec,
-																		asio::ip::tcp::resolver::results_type results) {
+																		YAARC_ASIO::ip::tcp::resolver::results_type results) {
 				if (ec) {
-					if (ec != asio::error::operation_aborted) {
+					if (ec.value() != YAARC_ASIO::error::operation_aborted) {
 						Log(LogLevel::Error, fmt::format("Failed to resolve '{}' during connect due to error {} (#{})",
 														 m_config.Host, ec.message(), ec.value()));
 						ScheduleReconnect();
@@ -150,15 +149,15 @@ namespace yaarc::impl {
 			});
 		}
 
-		void TryConnect(asio::ip::tcp::resolver::results_type resolved, size_t offset = 0) {
+		void TryConnect(YAARC_ASIO::ip::tcp::resolver::results_type resolved, size_t offset = 0) {
 			if (offset >= resolved.size()) {
 				throw std::runtime_error(
 						fmt::format("Bigger resolve offset passed to TryConnect than exists (offset {} >= size {})",
 									offset, resolved.size()));
 			}
-			asio::dispatch(m_resolver.get_executor(), [this, self{Ptr()}, resolved{std::move(resolved)}, offset]() {
+			YAARC_ASIO::dispatch(m_resolver.get_executor(), [this, self{Ptr()}, resolved{std::move(resolved)}, offset]() {
 				if (m_socket) {
-					m_socket->Stop([](asio::error_code) {});
+					m_socket->Stop([](YAARC_ERROR_CODE) {});
 					Log(LogLevel::Debug, fmt::format("Socket was open while trying to connect, closing"));
 					m_socket.reset();
 				}
@@ -167,7 +166,7 @@ namespace yaarc::impl {
 						[this, self{Ptr()}](Value value) {
 							HandleRead(std::move(value));
 						},
-						[this, self{Ptr()}](asio::error_code ec) {
+						[this, self{Ptr()}](YAARC_ERROR_CODE ec) {
 							OnDisconnected(ec);
 						}
 				);
@@ -182,7 +181,7 @@ namespace yaarc::impl {
 					fmt::format("Trying to connect to {}:{}", endpoint.address().to_string(), endpoint.port()));
 				m_socket->TryConnect(endpoint, [this, self, endpoint, resolved, offset](std::error_code ec) {
 					if (ec) {
-						if (ec == asio::error::operation_aborted) {
+						if (ec.value() == YAARC_ASIO::error::operation_aborted) {
 							return;
 						}
 
@@ -204,7 +203,7 @@ namespace yaarc::impl {
 			Log(LogLevel::Debug, "impl::Client::OnConnected");
 			if (m_config.Password.empty()) {
 				m_isConnected = true;
-				asio::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
+				YAARC_ASIO::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
 					StartWrite();
 				});
 			} else {
@@ -223,18 +222,18 @@ namespace yaarc::impl {
 							}
 							if (res.IsError()) {
 								Log(LogLevel::Error, fmt::format("Failed to AUTH against server: {}", res.AsError()));
-								m_socket->Stop([](asio::error_code) {});
+								m_socket->Stop([](YAARC_ERROR_CODE) {});
 								m_socket.reset();
 								ScheduleReconnect();
 							} else {
 								m_isConnected = true;
-								asio::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
+								YAARC_ASIO::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
 									StartWrite();
 								});
 							}
 						}, std::numeric_limits<size_t>::max()
 				});
-				m_socket->StartWrite(m_sentCommands.begin(), ++m_sentCommands.begin(), [](asio::error_code) {
+				m_socket->StartWrite(m_sentCommands.begin(), ++m_sentCommands.begin(), [](YAARC_ERROR_CODE) {
 					// nothing to do here, the auth response comes through the read handler
 				});
 			}
@@ -255,11 +254,11 @@ namespace yaarc::impl {
 
 			// TODO: currently we just shove all pending commands into the write buffer at once
 			// this *should* be fine in most cases?
-			m_socket->StartWrite(m_pendingCommands.begin(), m_pendingCommands.end(), [this, self{Ptr()}](asio::error_code ec) {
+			m_socket->StartWrite(m_pendingCommands.begin(), m_pendingCommands.end(), [this, self{Ptr()}](YAARC_ERROR_CODE ec) {
 				// Restart write right away once we have written everything
 				m_isWriting = false;
 				if (!ec) {
-					asio::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
+					YAARC_ASIO::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
 						if (m_socket) {
 							StartWrite();
 						}

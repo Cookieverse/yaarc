@@ -1,7 +1,7 @@
 #ifndef YAARC_CLIENTSOCKET_HPP
 #define YAARC_CLIENTSOCKET_HPP
 
-#include <asio.hpp>
+#include "IncludeAsio.hpp"
 #include <utility>
 #include "Command.hpp"
 
@@ -12,20 +12,20 @@ namespace yaarc::impl {
 	template<typename Executor>
 	class ClientSocket
 			: public std::enable_shared_from_this<ClientSocket<Executor>> {
-		asio::ip::tcp::socket m_socket;
+		YAARC_ASIO::ip::tcp::socket m_socket;
 		std::function<void(LogLevel, std::string)> m_logger;
 
-		asio::streambuf m_readBuffer;
+		YAARC_ASIO::streambuf m_readBuffer;
 		std::vector<uint8_t> m_writeBuffer;
 		bool m_isWriting;
 		std::vector<uint8_t> m_authBuffer;
 		std::function<void(Value)> m_readHandler;
-		std::function<void(asio::error_code)> m_disconnectHandler;
+		std::function<void(YAARC_ERROR_CODE)> m_disconnectHandler;
 	public:
 		ClientSocket() = delete;
 
 		ClientSocket(Executor io, std::function<void(Value)> read,
-							  std::function<void(asio::error_code)> disconnect) :
+							  std::function<void(YAARC_ERROR_CODE)> disconnect) :
 				m_socket(io),
 				m_isWriting(false),
 				m_readHandler(std::move(read)),
@@ -43,8 +43,8 @@ namespace yaarc::impl {
 
 		template<class Callback>
 		void Stop(Callback handler) {
-			asio::dispatch(m_socket.get_executor(), [this, handler{std::move(handler)}, self{Ptr()}]() {
-				asio::error_code ec;
+			YAARC_ASIO::dispatch(m_socket.get_executor(), [this, handler{std::move(handler)}, self{Ptr()}]() {
+				YAARC_ERROR_CODE ec;
 				if (m_socket.is_open()) {
 					m_socket.close(ec);
 					if (ec) {
@@ -59,9 +59,9 @@ namespace yaarc::impl {
 		}
 
 		template<typename Handler>
-		void TryConnect(const asio::ip::tcp::endpoint& endpoint, Handler handler) {
-			asio::dispatch(m_socket.get_executor(), [this, endpoint, handler{std::move(handler)}, self{Ptr()}]() {
-				m_socket.async_connect(endpoint, [this, handler, endpoint, self{Ptr()}](const asio::error_code& ec) {
+		void TryConnect(const YAARC_ASIO::ip::tcp::endpoint& endpoint, Handler handler) {
+			YAARC_ASIO::dispatch(m_socket.get_executor(), [this, endpoint, handler{std::move(handler)}, self{Ptr()}]() {
+				m_socket.async_connect(endpoint, [this, handler, endpoint, self{Ptr()}](const YAARC_ERROR_CODE& ec) {
 					if (!ec) {
 						Log(LogLevel::Info, fmt::format("Connected to {}:{}", endpoint.address().to_string(), endpoint.port()));
 						StartRead();
@@ -82,8 +82,8 @@ namespace yaarc::impl {
 			for (auto& it = begin; begin != end; ++it) {
 				m_writeBuffer.insert(m_writeBuffer.end(), it->Data.begin(), it->Data.end());
 			}
-			asio::async_write(m_socket, asio::const_buffer(m_writeBuffer.data(), m_writeBuffer.size()),
-							  [this, self{Ptr()}, handler](std::error_code ec, size_t written) {
+			YAARC_ASIO::async_write(m_socket, YAARC_ASIO::const_buffer(m_writeBuffer.data(), m_writeBuffer.size()),
+							  [this, self{Ptr()}, handler](YAARC_ERROR_CODE ec, size_t written) {
 								  m_isWriting = false;
 								  handler(ec);
 								  if (ec) {
@@ -100,7 +100,7 @@ namespace yaarc::impl {
 			}
 		}
 
-		void OnDisconnected(std::error_code ec) {
+		void OnDisconnected(YAARC_ERROR_CODE ec) {
 			if (m_disconnectHandler) {
 				Log(LogLevel::Warning, fmt::format("Socket disconnected due to {} (#{})", ec.message(), ec.value()));
 				m_disconnectHandler(ec);
@@ -113,12 +113,12 @@ namespace yaarc::impl {
 		void StartRead() {
 			Log(LogLevel::Debug, "impl::ClientSocket::StartRead()");
 			m_socket.async_read_some(m_readBuffer.prepare(ReadChunkSize),
-									[this, self{Ptr()}](std::error_code ec, size_t read) {
+									[this, self{Ptr()}](YAARC_ERROR_CODE ec, size_t read) {
 										HandleRead(ec, read);
 									});
 		}
 
-		void HandleRead(std::error_code ec, size_t read) {
+		void HandleRead(YAARC_ERROR_CODE ec, size_t read) {
 			Log(LogLevel::Debug, "impl::ClientSocket::HandleRead()");
 			if (!m_readHandler) {
 				// this socket is dead now, since we don't have a read handler anymore

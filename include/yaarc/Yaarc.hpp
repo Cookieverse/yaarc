@@ -16,7 +16,7 @@ namespace yaarc {
 	public:
 		typedef std::function<void(std::error_code, Value)> Callback;
 
-		explicit Yaarc(asio::io_context& io, Config config) : m_impl(
+		explicit Yaarc(YAARC_ASIO::io_context& io, Config config) : m_impl(
 				std::make_shared<impl::Client>(io, std::move(config))) {
 			SetLogger([](LogLevel level, std::string msg) {
 				std::cout << "[YAARC][" << LogLevelToString(level) << "] " << msg << std::endl;
