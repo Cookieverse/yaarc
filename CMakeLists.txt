@@ -11,6 +11,8 @@ if (WIN32)
     add_compile_options("/wd4068") # no warning spam about unknown pragmas
 endif ()
 
+option(YAARC_USE_BOOST_ASIO "Use boost asio instead of standalone")
+
 if (YAARC_USE_BOOST_ASIO)
     target_compile_definitions(yaarc PUBLIC YAARC_USE_BOOST_ASIO)
 
