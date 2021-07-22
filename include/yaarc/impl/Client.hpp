@@ -241,7 +241,7 @@ namespace yaarc::impl {
 
 		void StartWrite() {
 			if (m_isWriting) {
-				throw std::runtime_error("Tried to StartWrite() without a socket set");
+				throw std::runtime_error("Tried to StartWrite() while already writing");
 			}
 			if (!m_socket) {
 				throw std::runtime_error("Tried to StartWrite() without a socket set");
@@ -259,7 +259,7 @@ namespace yaarc::impl {
 				m_isWriting = false;
 				if (!ec) {
 					YAARC_ASIO::post(m_resolver.get_executor(), [this, self{Ptr()}]() {
-						if (m_socket) {
+						if (m_socket && !m_isWriting) {
 							StartWrite();
 						}
 					});
