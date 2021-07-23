@@ -28,5 +28,9 @@ endif()
 
 target_link_libraries(yaarc PRIVATE fmt::fmt-header-only)
 include_directories("${PROJECT_SOURCE_DIR}/include/")
-ENABLE_TESTING()
-ADD_SUBDIRECTORY(tests)
+
+option(YAARC_BUILD_TESTS "Use boost asio instead of standalone")
+if (YAARC_BUILD_TESTS)
+    ENABLE_TESTING()
+    ADD_SUBDIRECTORY(tests)
+endif()
