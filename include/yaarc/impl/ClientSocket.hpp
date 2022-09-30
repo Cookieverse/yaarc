@@ -45,6 +45,8 @@ namespace yaarc::impl {
 		void Stop(Callback handler) {
 			YAARC_ASIO::dispatch(m_socket.get_executor(), [this, handler{std::move(handler)}, self{Ptr()}]() {
 				YAARC_ERROR_CODE ec;
+				m_readHandler = nullptr;
+				m_disconnectHandler = nullptr;
 				if (m_socket.is_open()) {
 					m_socket.close(ec);
 					if (ec) {
@@ -52,8 +54,7 @@ namespace yaarc::impl {
 					}
 				}
 				m_socket.cancel(ec);
-				m_readHandler = nullptr;
-				m_disconnectHandler = nullptr;
+				Log(LogLevel::Debug, "Stopping complete");
 				handler(ec);
 			});
 		}

@@ -80,10 +80,11 @@ namespace yaarc::impl {
 		/// Stops the client, all pending commands are cancelled
 		template<class Callback>
 		void Stop(Callback handler) {
+			Log(LogLevel::Info, "Stopping");
 			YAARC_ASIO::dispatch(m_resolver.get_executor(), [this, handler, self{Ptr()}]() {
-
 				m_resolver.cancel();
-				m_reconnectTimer.cancel();
+				YAARC_ERROR_CODE ec;
+				m_reconnectTimer.cancel(ec);
 
 				for (auto& cmd : m_sentCommands) {
 					cmd.Invoke(YAARC_ERROR_CODE(YAARC_ASIO::error::operation_aborted), Value());
@@ -96,9 +97,11 @@ namespace yaarc::impl {
 				m_pendingCommands.clear();
 				// if we have a socket, dispatch handler to it
 				if (m_socket) {
+					Log(LogLevel::Debug, "There's a socket set, passing stop to it");
 					m_socket->Stop(handler);
 					m_socket.reset();
 				} else {
+					Log(LogLevel::Debug, "Stopping complete");
 					handler(YAARC_ERROR_CODE());
 				}
 			});
@@ -132,8 +135,8 @@ namespace yaarc::impl {
 						Log(LogLevel::Error, fmt::format("Failed to resolve '{}' during connect due to error {} (#{})",
 														 m_config.Host, ec.message(), ec.value()));
 						ScheduleReconnect();
-						return;
 					}
+					return;
 				}
 				if (results.empty()) {
 					Log(LogLevel::Error,
