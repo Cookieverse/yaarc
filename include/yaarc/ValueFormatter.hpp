@@ -3,13 +3,14 @@
 
 #include "Value.hpp"
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 template<>
 struct fmt::formatter<yaarc::Value> : fmt::formatter<string_view> {
 	// Formats the point p using the parsed format specification (presentation)
 	// stored in this formatter.
-	template<typename FormatContext>
-	auto format(const yaarc::Value& value, FormatContext& ctx) {
+    auto format(const yaarc::Value& value, format_context& ctx) const
+        -> format_context::iterator  {
 		// auto format(const point &p, FormatContext &ctx) -> decltype(ctx.out()) // c++11
 		// ctx.out() is an output iterator to write to.
 		switch (value.GetType()) {
@@ -42,8 +43,8 @@ template<>
 struct fmt::formatter<yaarc::ValueType> : fmt::formatter<string_view> {
 	// Formats the point p using the parsed format specification (presentation)
 	// stored in this formatter.
-	template<typename FormatContext>
-	auto format(const yaarc::ValueType& value, FormatContext& ctx) {
+    static auto format(const yaarc::ValueType& value, format_context& ctx)
+    -> format_context::iterator {
 		// auto format(const point &p, FormatContext &ctx) -> decltype(ctx.out()) // c++11
 		// ctx.out() is an output iterator to write to.
 		switch (value) {

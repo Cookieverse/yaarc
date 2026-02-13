@@ -83,8 +83,7 @@ namespace yaarc::impl {
 			Log(LogLevel::Info, "Stopping");
 			YAARC_ASIO::dispatch(m_resolver.get_executor(), [this, handler, self{Ptr()}]() {
 				m_resolver.cancel();
-				YAARC_ERROR_CODE ec;
-				m_reconnectTimer.cancel(ec);
+				m_reconnectTimer.cancel();
 
 				for (auto& cmd : m_sentCommands) {
 					cmd.Invoke(YAARC_ERROR_CODE(YAARC_ASIO::error::operation_aborted), Value());
